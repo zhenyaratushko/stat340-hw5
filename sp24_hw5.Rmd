@@ -1,0 +1,235 @@
+---
+title: "Homework 5"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(Rfast)
+```
+
+## Problem \#1: Testing coin flips <small>(6 pts)</small>
+
+In the six sequences below, only one of them is actually **randomly generated from independent flips of a fair coin**. Use a combination of everything you know (common sense, Monte Carlo, hypothesis testing, etc.) to identify which is actually random and explain your reasoning.
+
+(For full points, conduct a formal test and report a p-value for each sequence. You may use a combination of multiple tests to arrive at your answer. If you cannot compute a p-value for each sequence, you can still earn a significant amount of partial credit by carefully explaining your reasoning and response as best as you can.)
+
+My advice is **be creative** with the test statistics you come up with to eliminate each sequence! Think of some way of summarizing a sequence of flips that might be useful for comparing against a simulated sequence of random flips. After you come up with an idea for a statistic, remember to run it on many MC generated completely random flips to produce a distribution under the null, which you can then compare with your data to get a p-value. Also, be careful of how you define "more extreme" than the data.
+
+(2 bonus points available if you can find a single test that is powerful enough to reject all the fake sequences together in one step. Yes, at least one such possible test exists.)
+
+```{r}
+flips1 = "HTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHT"
+
+flips2 = "HHHTHTTTHHTHHTHHHTTTTHTHTHHTTHTHHHTHHTHTTTHTHHHTHTTTHTHTHHTHTHTTHTHHTHTHTTTHTHHHTHTHTTHTHTHHTHTHTHHHTHTTTHTHHTHTHTHHTTTHTHHTHHTTTTHTHTHHHTHTTHTHHTHTHTTHTHHTHTHHHTHHHTHTTTHTTHTTTHTHHHTHTHTTHTHHTHHTHTTT"
+
+flips3 = "HHTHTHTTTHTHHHTHHTTTHTHHTHTTTHTHTHHTHTHTTHTHHHHHHTTTHTHTHHTHTTTHTHHTHTHTTTHTHHHTTHTTTHTHTHHHHTHTTHHTTTTTHTHHHTHTHTTTTTHHHTHHTHHTHHHTTTTHTHTHHHTHHTTTTTHTHHHTHTHTHTTTHTHHHTHTHTHTTHTHHTHTHTHTTTTHTHHHTHTH"
+
+flips4 = "HTHHHHHHHTHTTHHTTHHHTHTHTTTHHTHHHTHHTTHTTTTTTTTTHTHHTTTTTHTHTHTHHTTHTTHTTTTTHHHTHTTTHTHTHHHTHTTTTHTHTHHTTHTHTTHHTHTHHHHTHTTHHTTHTTHTTHTHHHHHHTTTTTTHHHTTHTHHHHTTTHTTHHHTTHTHHTTTHHTHHTTTHTHHTHHHTHHTTHHH"
+
+flips5 = "HHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTT"
+
+flips6 = "TTHTTTHTTTTTTTHTHTHTHTTHTTHTHHTHHTTTHHTHTTTHTHHTHHHTHTTHHTHHTTHTHTTTTHTHTTTHHTTTTTTTTHTHHTTHTTTTTTHTHTHTHTTTHTTHHTTHTTTHHTTTHTTHTTTTHTTTTHHTTTHTHTHHHTTTTTTHTHHTTTTTTTTTTTTHHHTTTHHHTTTHTTTHTHTTHTTTTTHT"
+
+# you can use the function below to split the above sequences in vectors of flips
+split = function(str) strsplit(str, split="")[[1]]
+split_flips1 = (split(flips1))
+split_flips2 = (split(flips2))
+split_flips3 = (split(flips3))
+split_flips4 = (split(flips4))
+split_flips5 = (split(flips5))
+split_flips6 = (split(flips6))
+```
+
+```{r}
+tableOfPairs = function(x) {
+  n = length(x);Rfast::Table(paste(x[1:(n-1)], x[2:n], sep = ""))
+}
+
+ratioFromTable = function(tb) {
+  hh = 0
+  if(!is.na(tb["HH"])) {
+    hh = tb["HH"]
+  }
+  
+  ht = 0
+  if(!is.na(tb["HT"])) {
+    ht = tb["HT"]
+  }
+  
+  tt = 0
+  if(!is.na(tb["TT"])) {
+    tt = tb["TT"]
+  }
+  
+  th = 0
+  if(!is.na(tb["TH"])) {
+    th = tb["TH"]
+  }
+  return(setNames(hh / ht, "R"))
+}
+
+mc.ratios = replicate(1e5, ratioFromTable(tableOfPairs(sample(split_flips1))))
+
+flips1_pval = 2 * min(mean(mc.ratios>=ratioFromTable(tableOfPairs(split_flips1))),
+      mean(mc.ratios<=ratioFromTable(tableOfPairs(split_flips1))))
+flips2_pval = 2 * min(mean(mc.ratios>=ratioFromTable(tableOfPairs(split_flips2))),
+      mean(mc.ratios<=ratioFromTable(tableOfPairs(split_flips2))))
+flips3_pval = 2 * min(mean(mc.ratios>=ratioFromTable(tableOfPairs(split_flips3))),
+      mean(mc.ratios<=ratioFromTable(tableOfPairs(split_flips3))))
+flips4_pval = 2 * min(mean(mc.ratios>=ratioFromTable(tableOfPairs(split_flips4))),
+      mean(mc.ratios<=ratioFromTable(tableOfPairs(split_flips4))))
+flips5_pval = 2 * min(mean(mc.ratios>=ratioFromTable(tableOfPairs(split_flips5))),
+      mean(mc.ratios<=ratioFromTable(tableOfPairs(split_flips5))))
+flips6_pval = 2 * min(mean(mc.ratios>=ratioFromTable(tableOfPairs(split_flips6))),
+      mean(mc.ratios<=ratioFromTable(tableOfPairs(split_flips6))))
+
+pval_df = data.frame(flip_number = c("flips1", "flips2", "flips3", "flips4", "flips5", "flips6"), p_val = c(flips1_pval, flips2_pval, flips3_pval, flips4_pval, flips5_pval, flips6_pval))
+
+pval_df[pval_df$p_val > 0.05, ]
+```
+> To identify the sole randomly-generated sequence of the six provided, we ran a test that examined the run lengths of heads and tails in each sequence by calculating how many instances of consecutive pairs (e.g. HH, HT, TH, or TT) appeared in that sequence. From this, we calculated a two-sided p-value for each sequence that showed whether there was statistically significant evidence that it was NOT randomly generated. We then filtered through our dataframe for p-values more than 0.05 and found only the p_value for Flip 4 to match this condition. Thus, since we do not have strong evidence that Flip 4 was not randomly generated (p ~ 0.39), we hold that it is, in fact, the flip sequence that was randomly generated.
+
+## Problem \#2: Finding the Trick Coin <small>(6 pts; 2pts each)</small>
+
+I have two coins in my pocket - a trick coin with two heads and a fair coin with one head and one tail(s?). We'll play a game. I will grab one coin at random, and flip it $N$ times. After that you will have to decide if it is the fair coin or the trick coin. The null hypothesis is that it is the fair coin. 
+
+**Decision Rule 1**: If after $N$ flips there are no tails, then you decide it is the trick coin. If there is at least 1 tail then you know it is the fair coin. 
+
+a. Using "Decision Rule 1", what is the lowest number of flips $N$ would you need in order to have a significance level less than 5% for this test?
+
+```{r}
+# Following the formula 1/2^N and attempting to find a value < 0.05...
+#   
+#   N |  Significance Level |
+#  --------------------------
+#   1 |     1/2, 0.5        |
+#   2 |     1/4, 0.25       |
+#   3 |     1/8, 0.125      |
+#   4 |     1/16, 0.0625    |
+#   5 |     1/32, 0.03125   |
+```
+
+> You would need 5 flips to achieve a significance level less than 5% for this test.
+
+b. Using $N$ from part a, what is the power of the test?
+
+> The power of the test is the probability that we reject the null hypothesis given that the alternate hypothesis is true (P(Reject H0 | HA true)). This means that we are attempting to find the probability that we observe any heads when flipping our coin, given that we are using the trick coin. Thus, we find that our power is 1, because due to the nature of the trick coin, it will always land on heads.
+
+c. Suppose $N=4$ is decided. How can you modify the decision process to have a significance level of exactly 5%? Does this change the power of the test?
+
+> At 4 flips of the coin under our current Decision Rule, we achieve a significance level of 6.25% (1/16). To achieve a significance level of exactly 5% (1/20), we can add an addendum to our Decision Rule where, if we do indeed achieve a 6.25% significance level, we should then pull out and flip another coin (NOT the one in our pocket) that has an 80% (0.8) probability of landing on heads. If we multiply this probability (4/5) and our significance level (1/16), we get 1/20 and are thus able to achieve a significance level of 5%. In this scenario, the power of the test is changed to 0.8.
+
+d. Extra Credit (2 points): Suppose if you guess correct you win \$100 (and if you're wrong you get nothing), but each flip of the coin costs \$10. What strategy would you use to maximize your expected profit from this game?
+
+
+## Problem \#3: Testing the maximum of a uniform distribution <small>(8 pts; 2 pts each)</small>
+
+We sample $X_1, X_x,\ldots,X_n \overset{\text{iid}}\sim\text{Uniform}(0,m)$ where $m$ is an unknown maximum. Sleazy Jim tells you that $m=1$ but you're not so sure. The 50 values sampled are in the following data file:
+
+```{r}
+X = read.csv("uniform_sample.csv")$x
+```
+
+a. Write out in formal notation the null and alternative hypotheses.
+
+> H0: $m=1$
+
+> HA: $m$ $\not=$ $1$
+
+b. Come up with a test statistic and measure your sampled data. Is this a one-sided test or two-sided test?
+
+```{r}
+t_stat = 2 * mean(X)
+t_stat
+```
+
+> This is a two-sided test, because in our attempt to prove that m is not equal to 1, we are arguing that it is either more than or less than 1, hence the need to test both sides.
+
+c. Simulate a distribution for the test statistic under the null hypothesis of size at least 1000. Display a histogram of your test statistic distribution.
+
+```{r}
+dist = runif(1000, min = 0, max = 1)
+hist(dist)
+abline(v = t_stat, lw = 3, col = 'red')
+```
+
+d. Calculate the $p$-value for this data and make a conclusion.
+
+```{r}
+p_val = 2 * min(mean(dist>=t_stat), mean(dist<=t_stat))
+p_val
+```
+
+> We do not have strong evidence that m is not equal to 1 (p ~ 0.27, two-sided test); thus, we hold that Sleazy Jim is correct and that m IS equal to 1.
+
+## Problem \#4: Rising Temperatures? <small>(10 pts; 2 pt each)</small>
+
+The `annual_avg_temp.csv` data file contains the US annual average temperature from 1875 through 2022.
+
+```{r}
+temp = read.csv("annual_avg_temp.csv")
+years = temp$Year
+temps = temp$Annual.Average.Temperature.F
+plot(temp, type = "l")
+```
+
+There seems to be a trend but it could be due to randomness. Your task is to perform a permutation test on the historical record of annual avg. temperatures to determine if there is statistical evidence of a real trend.
+
+a. State the null and alternative hypotheses
+
+> H0: There is no trend in regards to US annual average temperature from 1875 through 2022 (beta_1 = 0)
+
+> HA: There is a positive trend in regards to US annual average temperature from 1875 through 2022 (beta_1 > 0)
+
+b. Determine a test statistic that identify non-randomness in the temperatures
+
+```{r}
+sum_abs_diff = function(vector) sum(diff(vector))
+t_stat = sum_abs_diff(temp$Annual.Average.Temperature.F)
+t_stat
+```
+
+c. Decide whether the test will be a one or two-tailed test
+
+> This will be a one-sided test, because we are attempting to find if there is a positive trend in temperature over time, so we do not need to know the negative slope.
+
+d. Simulate a distribution of test statistics under the null hypothesis
+
+```{r}
+NMC = 1e4
+
+permute_and_compute = function(A, B, NMC){
+  pooled_data = c(A, B)
+  n_A = length(A)
+  n_B = length(B)
+  n_total = n_A + n_B
+  
+  test_statistics = c()
+  for(i in 1:NMC) {
+    shuffled_data = sample(pooled_data, size = n_total, replace = FALSE)
+    shuffled_A = shuffled_data[1:n_A]
+    shuffled_B = shuffled_data[(n_A + 1):n_total]
+    t_stat = mean(diff(shuffled_B)) - mean(diff(shuffled_A))
+    test_statistics = append(test_statistics, t_stat)
+  }
+  return(test_statistics)
+}
+
+permutation_computation = permute_and_compute(temp$Year, temp$Annual.Average.Temperature.F, NMC)
+hist(permutation_computation)
+abline(v = t_stat, lw = 3, col = 'red')
+```
+
+
+e. Calculate the test statistic on the observed data, calculate the $p$-value and state your conclusions.
+
+```{r}
+p_val = sum(permutation_computation >= t_stat)/NMC
+p_val
+```
+
+> We do not have strong evidence that there is a positive trend in regards to US annual average temperature from 1875 through 2022 (p ~ 0.31, one-sided test), so we hold that there is no trend.
+
+*Hint: basing the test statistic on the differences between consecutive years may be a good idea.*
+
